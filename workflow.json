@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// === CONSTANTS ===\nconst ROUNDING_DP = 2;\nconst REQUIRED_FIELDS = ['eventId', 'isin', 'eventType', 'mandatoryVoluntaryFlag', 'recordDate'];\nconst VALID_EVENT_TYPES = ['DVCA', 'DVSE', 'SPLF', 'RHTS', 'TEND', 'CHOS'];\nconst VALID_FLAGS = ['MAND', 'VOLU', 'CHOS'];\n\nfunction roundHalfUp(value, dp = ROUNDING_DP) {\n  if (value === null || value === undefined || isNaN(value)) return 0.00;\n  const factor = Math.pow(10, dp);\n  return Math.floor(value * factor + 0.5) / factor;\n}\n\nconst payload = $json.body || $json;\n\nfor (const field of REQUIRED_FIELDS) {\n  if (!payload[field]) {\n    throw new Error(`MISSING_FIELD: Mandatory field '${field}' is missing.`);\n  }\n}\n\nif (!VALID_EVENT_TYPES.includes(payload.eventType)) {\n  throw new Error(`INVALID_EVENT_TYPE: '${payload.eventType}' is not supported.`);\n}\n\nif (!VALID_FLAGS.includes(payload.mandatoryVoluntaryFlag)) {\n  throw new Error(`INVALID_FLAG: '${payload.mandatoryVoluntaryFlag}' is not recognized.`);\n}\n\nif (['VOLU', 'CHOS'].includes(payload.mandatoryVoluntaryFlag) && !payload.electionDeadline) {\n  throw new Error(`MISSING_ELECTION_DEADLINE: Voluntary event requires electionDeadline.`);\n}\n\nreturn {\n  json: {\n    ...payload,\n    validatedAt: new Date().toISOString()\n  }\n};"
+        "jsCode": "// === CONSTANTS & VALIDATION ===\nconst ROUNDING_DP = 2;\nconst EXPECTED_SECRET = \"SECURE-TOKEN-2026\";\nconst REQUIRED_FIELDS = ['eventId', 'isin', 'eventType', 'mandatoryVoluntaryFlag', 'recordDate'];\nconst VALID_EVENT_TYPES = ['DVCA', 'DVSE', 'SPLF', 'RHTS', 'TEND', 'CHOS'];\nconst VALID_FLAGS = ['MAND', 'VOLU', 'CHOS'];\n\nconst payload = $json.body || $json;\nconst headers = $request?.headers || {};\nconst secretHeader = headers['x-webhook-secret'] || headers['X-Webhook-Secret'] || payload.webhookSecret;\n\nif (secretHeader && secretHeader !== EXPECTED_SECRET) {\n  throw new Error(`UNAUTHORIZED: Invalid X-Webhook-Secret token.`);\n}\n\nfor (const field of REQUIRED_FIELDS) {\n  if (!payload[field]) {\n    throw new Error(`MISSING_FIELD: Mandatory field '${field}' is missing.`);\n  }\n}\n\nif (!VALID_EVENT_TYPES.includes(payload.eventType)) {\n  throw new Error(`INVALID_EVENT_TYPE: '${payload.eventType}' is not supported.`);\n}\n\nif (!VALID_FLAGS.includes(payload.mandatoryVoluntaryFlag)) {\n  throw new Error(`INVALID_FLAG: '${payload.mandatoryVoluntaryFlag}' is not recognized.`);\n}\n\nif (['VOLU', 'CHOS'].includes(payload.mandatoryVoluntaryFlag) && !payload.electionDeadline) {\n  throw new Error(`MISSING_ELECTION_DEADLINE: Voluntary event requires electionDeadline.`);\n}\n\nreturn {\n  json: {\n    ...payload,\n    validatedAt: new Date().toISOString()\n  }\n};"
       },
       "id": "node-validation-02",
       "name": "Validation Code Node",
@@ -145,7 +145,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let escalationTier = 'NONE';\nlet daysToDeadline = null;\n\nif (['VOLU', 'CHOS'].includes($json.mandatoryVoluntaryFlag) && $json.electionDeadline) {\n  const deadline = new Date($json.electionDeadline);\n  const now = new Date();\n  const diffMs = deadline.getTime() - now.getTime();\n  daysToDeadline = Math.floor(diffMs / (1000 * 60 * 60 * 24));\n\n  if (daysToDeadline > 10) {\n    escalationTier = 'INFORMATIONAL';\n  } else if (daysToDeadline >= 3 && daysToDeadline <= 10) {\n    escalationTier = 'REMINDER';\n  } else if (daysToDeadline >= 0 && daysToDeadline < 3) {\n    escalationTier = 'URGENT';\n  } else {\n    escalationTier = 'BREACH';\n  }\n}\n\nreturn {\n  json: {\n    ...$json,\n    escalationTier,\n    daysToDeadline\n  }\n};"
+        "jsCode": "let escalationTier = 'NONE';\nlet daysToDeadline = null;\n\nif (['VOLU', 'CHOS'].includes($json.mandatoryVoluntaryFlag) && $json.electionDeadline) {\n  const deadline = new Date($json.electionDeadline);\n  const now = new Date();\n  const diffMs = deadline.getTime() - now.getTime();\n  daysToDeadline = Math.floor(diffMs / (1000 * 60 * 60 * 24));\n\n  if (daysToDeadline > 10) {\n    escalationTier = 'INFORMATIONAL';\n  } else if (daysToDeadline >= 3 && daysToDeadline <= 10) {\n    escalationTier = 'REMINDER';\n  } else if (daysToDeadline >= 1 && daysToDeadline < 3) {\n    escalationTier = 'URGENT';\n  } else {\n    escalationTier = 'BREACH'; // daysToDeadline <= 0 (FR-016)\n  }\n}\n\nreturn {\n  json: {\n    ...$json,\n    escalationTier,\n    daysToDeadline\n  }\n};"
       },
       "id": "node-deadline-gate-10",
       "name": "IF Deadline Gate",
@@ -177,8 +177,52 @@
     },
     {
       "parameters": {
+        "resource": "message",
+        "subject": "={{ \"[Corporate Action \" + $json.escalationTier + \"] Notification for Event \" + $json.eventId }}",
+        "message": "={{ $json.text || $json.llmNotificationDraft || \"Corporate Action Entitlement Notice\" }}",
+        "options": {}
+      },
+      "id": "node-dispatch-11b",
+      "name": "Gmail / Slack Notification Dispatch",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        400
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "credential-gmail",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
         "operation": "append",
         "sheetName": "AuditTrail",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "eventId": "={{ $json.eventId }}",
+            "isin": "={{ $json.isin }}",
+            "eventType": "={{ $json.eventType }}",
+            "mandatoryVoluntaryFlag": "={{ $json.mandatoryVoluntaryFlag }}",
+            "recordDate": "={{ $json.recordDate }}",
+            "electionDeadline": "={{ $json.electionDeadline || '' }}",
+            "accountNumber": "={{ $json.accountNumber || '' }}",
+            "clientName": "={{ $json.clientName || '' }}",
+            "positionAsOfRecordDate": "={{ $json.positionAsOfRecordDate || 0 }}",
+            "entitlementCash": "={{ $json.entitlementCash || 0.00 }}",
+            "entitlementShares": "={{ $json.entitlementShares || 0 }}",
+            "fractionalCash": "={{ $json.fractionalCash || 0.00 }}",
+            "newPosition": "={{ $json.newPosition || '' }}",
+            "escalationTier": "={{ $json.escalationTier || 'NONE' }}",
+            "daysToDeadline": "={{ $json.daysToDeadline !== null ? $json.daysToDeadline : '' }}",
+            "llmNotificationDraft": "={{ $json.text || $json.llmNotificationDraft || '' }}",
+            "timestamp": "={{ new Date().toISOString() }}"
+          }
+        },
         "options": {}
       },
       "id": "node-sheets-append-12",
@@ -186,7 +230,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        2000,
+        2210,
         400
       ],
       "credentials": {
@@ -340,6 +384,17 @@
       "main": [
         [
           {
+            "node": "Gmail / Slack Notification Dispatch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail / Slack Notification Dispatch": {
+      "main": [
+        [
+          {
             "node": "Google Sheets Audit Append",
             "type": "main",
             "index": 0
@@ -352,6 +407,6 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "bk1-v1-0-0-release",
-  "id": "BK1-CA-Entitlement-Calculator"
+  "versionId": "v1-0-1-audited",
+  "id": "ca-entitlement-calculator-workflow"
 }
