@@ -25,7 +25,7 @@ This document is the PMBOK-lite RAID (Risks / Assumptions / Issues / Dependencie
 | R-004 | Prompt injection via optionDetails[].description | Low | High | Medium | Input sanitisation in Code node before prompt assembly; `03b-ai-governance-model-card.md` §4.2 | Workflow Engineer | Open — mitigated |
 | R-005 | Google Sheets audit trail write race condition under parallel executions | Low (MVP: single-event processing) | Medium | Low | Acceptable for MVP; production requires database with row-locking (ADR-002 production gap) | Data Governance Lead | Open — accepted for MVP |
 | R-006 | LLM provider model deprecated mid-year | Medium | Medium | Medium | Model version pinned; annual review (ISO42001-LC-001); fallback template available | Workflow Engineer | Open — controlled |
-| R-007 | Portfolio uniqueness overlap risk (public template similarity) | Low | Medium | Medium | Uniqueness differentiated by: 5 named event-type formulas, record-date structural constraint, 4-tier escalation with breach case. See `backlog/UNIQUENESS-AUDIT-REPORT.md` §3 BK1 | {system_owner} | Open — documented |
+| R-007 | Portfolio uniqueness overlap risk (public template similarity) | Low | Medium | Medium | Uniqueness differentiated by: 5 named event-type formulas, record-date structural constraint, 4-tier escalation with breach case. See `backlog/UNIQUENESS-AUDIT-REPORT.md` §3 | Corporate Actions Operations Lead | Open — documented |
 | R-008 | Credential exported in workflow JSON (security risk) | Low | High | High | `SETUP.md` rule 4; credential placeholder discipline enforced before every export | Workflow Engineer | Open — process control |
 
 ---

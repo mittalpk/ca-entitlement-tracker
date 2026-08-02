@@ -140,7 +140,7 @@ Per SOC2-SEC-001: access to the following must be restricted to authorised perso
 
 | Resource | Access type | Authorised roles |
 |---|---|---|
-| n8n workflow (edit) | n8n editor access | Workflow Engineer; {system_owner} |
+| n8n workflow (edit) | n8n editor access | Workflow Engineer; Corporate Actions Operations Lead |
 | n8n workflow (view/run) | n8n viewer / executor access | Corporate Actions Ops; Asset Servicing Risk & Control |
 | Google Sheets position book | Editor (for data population); Viewer (workflow) | Data Governance Lead (editor); n8n OAuth2 service account (viewer) |
 | Google Sheets audit trail | Viewer + append via API; no direct UI edit | Asset Servicing Risk & Control (viewer); n8n OAuth2 service account (append) |

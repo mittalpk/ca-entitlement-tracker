@@ -6,7 +6,7 @@
 **Document standard:** ISO/IEC/IEEE 29148:2018 · IIBA BABOK v3 · TOGAF ADM  
 **Document version:** 1.0  
 **Status:** Draft  
-**System owner:** {system_owner}  
+**System owner:** Corporate Actions Operations Lead  
 **Last updated:** 2026-07-30  
 
 ---
@@ -58,7 +58,7 @@ See §12 (Glossary).
 | Technology / Workflow Engineer | n8n workflow builder and maintainer | R | | | |
 | Compliance Officer | Regulatory-mapping reviewer; sign-off on MiFID II record-keeping obligations | | A | C | |
 | Data Governance Lead | Data model approval; data minimization sign-off | | | A | I |
-| {system_owner} | Accountable executive sponsor | | A | | I |
+| Corporate Actions Operations Lead | Accountable executive sponsor | | A | | I |
 
 > **BABOK v3 note:** Stakeholder identification conducted via stakeholder-onion analysis. The above table covers primary stakeholders for MVP scope.
 

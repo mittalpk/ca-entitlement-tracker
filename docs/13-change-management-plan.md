@@ -21,7 +21,7 @@ This document is the ITIL v4-aligned change management plan for BK1. It consumes
 |---|---|---|---|
 | Standard | Pre-approved, low-risk, repeatable change | Credential rotation; Slack channel name update; Google Sheets tab rename | Workflow Engineer (self-approved) |
 | Normal | Non-trivial change requiring review | Formula constant update (e.g. rounding threshold); LLM prompt version update; new formula branch | Workflow Engineer + Compliance Officer sign-off |
-| Emergency | Urgent change to restore service | Rollback to previous version; credential regeneration after compromise | Workflow Engineer + verbal {system_owner} approval; documented within 24h |
+| Emergency | Urgent change to restore service | Rollback to previous version; credential regeneration after compromise | Workflow Engineer + verbal Corporate Actions Operations Lead approval; documented within 24h |
 
 ---
 
@@ -45,7 +45,7 @@ This document is the ITIL v4-aligned change management plan for BK1. It consumes
 
 ### Emergency change
 1. Implement change immediately to restore service.
-2. Notify {system_owner} verbally.
+2. Notify Corporate Actions Operations Lead verbally.
 3. Document in §4 within 24 hours with full rationale.
 4. Run TC-001–TC-008 as soon as service is stable.
 5. Formal retrospective within 5 business days.

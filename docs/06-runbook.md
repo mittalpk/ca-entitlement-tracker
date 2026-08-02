@@ -28,7 +28,7 @@ BK1 processes corporate-action notifications (DVCA, DVSE, SPLF, RHTS, TEND/CHOS)
 | Tier 1 — Auto-recovery | n8n node timeout; LLM API transient error | Workflow retry (automatic) | < 2 minutes |
 | Tier 2 — First-line ops | Webhook not reachable; Google Sheets quota error; repeated LLM failures | Technology / Workflow Engineer | < 30 minutes |
 | Tier 3 — Risk escalation | BREACH event detected (`incidentFlag=TRUE`); audit trail write failure | Asset Servicing Risk & Control + Compliance Officer | < 15 minutes |
-| Tier 4 — Executive | Data breach / GDPR incident; > 2 BREACH events in 1 hour | {system_owner} | < 60 minutes |
+| Tier 4 — Executive | Data breach / GDPR incident; > 2 BREACH events in 1 hour | Corporate Actions Operations Lead | < 60 minutes |
 
 ---
 

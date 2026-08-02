@@ -69,7 +69,7 @@ As defined in `requirements.md` §2. Reproduced here for charter completeness:
 | Technology / Workflow Engineer | R | | | |
 | Compliance Officer | | A | C | |
 | Data Governance Lead | | | A | I |
-| {system_owner} | | A | | I |
+| Corporate Actions Operations Lead | | A | | I |
 
 ---
 
@@ -101,6 +101,6 @@ As defined in `requirements.md` §10. No additional charter-level assumptions.
 
 | Role | Name | Signature | Date |
 |---|---|---|---|
-| Executive sponsor / system owner | {system_owner} | | |
-| Compliance Officer | {compliance_officer} | | |
-| Data Governance Lead | {data_governance_lead} | | |
+| Executive sponsor / system owner | Corporate Actions Operations Lead | | |
+| Compliance Officer | Compliance & Regulatory Lead | | |
+| Data Governance Lead | Data Governance Lead | | |
