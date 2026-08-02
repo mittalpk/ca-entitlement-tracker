@@ -1,8 +1,9 @@
 # Ignore all dotfiles and dotfolders by default (e.g. .Archive, .env, .vscode, .n8n)
 .*
 
-# Allow git to track .gitignore itself
+# Allow git to track .gitignore and .agents
 !.gitignore
+!.agents
 
 # Dependencies
 node_modules/
