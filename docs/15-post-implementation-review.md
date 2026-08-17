@@ -11,7 +11,7 @@
 
 ## How this fits
 
-This is a lessons-learned template for BK1. It is **not to be filled in before the first production or demo cycle** — it is a structured placeholder. It consumes all preceding documents in the suite as inputs to the review. It feeds back into future iterations of the `requirements.md`, `Executionplan.md`, and prompt-library templates.
+This is a lessons-learned template for BK1. It is **not to be filled in before the first production or demo cycle** — it is a structured placeholder. It consumes all preceding documents in the suite as inputs to the review. It feeds back into future iterations of the `requirements.md`, `Executionplan.md`, and `PromptLib/` prompt templates.
 
 > **Status note:** This document will remain in `Template` status until the first production deployment or portfolio demo cycle is complete. Do not populate with estimated or invented outcomes.
 

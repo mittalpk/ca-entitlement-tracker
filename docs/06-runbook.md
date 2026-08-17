@@ -64,6 +64,18 @@ BK1 processes corporate-action notifications (DVCA, DVSE, SPLF, RHTS, TEND/CHOS)
 - If column name mismatch: correct the Google Sheets column header; do not change the Code node field name.
 - If wrong spreadsheet/tab: update the n8n node configuration; do not export the workflow until credentials are cleared.
 
+### FM-002b: Workflow fails at `Switch eventType` / no event ever routes (added 2026-08-16)
+
+**Symptoms:** Execution reaches `Google Sheets Lookup` successfully but `Switch eventType` never matches any branch — every event silently falls through with no formula calculated, no error thrown.
+
+**Diagnosis:**
+1. Check `Merge Lookup with Payload` (immediately after `Google Sheets Lookup`, immediately before `Switch eventType`) actually ran and produced output. n8n's Google Sheets node in lookup mode replaces the item JSON with the matched row — this merge node is what restores `eventType` and the rest of the validated webhook payload before the Switch node needs it.
+2. If this node is missing, disabled, or was accidentally deleted during a workflow edit: the Switch node has no `eventType` to route on at all. This was a real bug found 2026-08-16 (`.Archive/log.md` `BK1-ISS-004`) — it would break 100% of live requests.
+
+**Remediation:**
+- Re-add `Merge Lookup with Payload` if missing: `{ ...($('Validation Code Node').item.json), ...$json }`, wired between `Google Sheets Lookup` and `Switch eventType`.
+- **This class of bug generalizes to any node placed directly after a Sheets/database lookup** — see the rule added to `.agents/AGENTS.md` (`Sheets/Database Lookup Data Loss`).
+
 ---
 
 ### FM-003: LLM API error or timeout
@@ -73,7 +85,7 @@ BK1 processes corporate-action notifications (DVCA, DVSE, SPLF, RHTS, TEND/CHOS)
 **Diagnosis:**
 1. Check LLM provider status page (e.g. status.openai.com).
 2. Check n8n execution log for specific error code (rate limit, auth failure, timeout).
-3. Verify API key credential in n8n credential store is valid and not expired.
+3. Verify API key credential in n8n credential store is valid and not expired — **the credential lives on the separate `OpenAI Chat Model` node, not on `Basic LLM Chain` itself** (fixed 2026-08-16, `.Archive/log.md` `BK1-ISS-003`; n8n's LangChain nodes require a model connected via `ai_languageModel`, not a bare credential on the chain node).
 
 **Remediation — transient (rate limit / timeout):**
 - Retry: n8n's built-in retry (configure Retry on Fail in node settings).

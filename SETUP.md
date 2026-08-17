@@ -72,14 +72,17 @@ This tab logs all calculated entitlements and deadline states. Populate headers 
 1. Download [`workflow.json`](./workflow.json).
 2. Open your n8n workspace → **Workflows** → **Import from File** → Select `workflow.json`.
 3. Configure required node credentials:
-   - **Google Sheets Node:** Link your `Google Sheets OAuth2` credential. Update `documentId` to point to your `Corporate_Actions_SoR` sheet.
-   - **Basic LLM Chain Node:** Link your `OpenAI API` credential (Model: `gpt-4o-mini`).
+   - **Webhook Trigger node:** create a new **Header Auth** credential (n8n Credentials → New → Header Auth), set the header name to `X-Webhook-Secret` and the value to a secret of your choosing, then link it in the Webhook Trigger node's credential dropdown. **This is not a manual header check in code** (an earlier version was, and it had a fail-open bug — see `.Archive/log.md` `BK1-ISS-002`) — n8n now rejects any request with a missing or wrong header with HTTP 401 before the workflow runs at all.
+   - **Google Sheets Lookup / Google Sheets Audit Append nodes:** Link your `Google Sheets OAuth2` credential. Update `documentId` to point to your `Corporate_Actions_SoR` sheet.
+   - **OpenAI Chat Model node** (not the Basic LLM Chain node — the chain node has no credential slot of its own; the model connects to it via an `ai_languageModel` link): Link your `OpenAI API` credential (Model: `gpt-4o-mini`).
    - **Gmail / Slack Dispatch Node:** Link your Gmail OAuth2 or Slack API credential.
-   - **Webhook Trigger Node:** Set security header `X-Webhook-Secret` matching your environment secret (`NFR-003`).
+   - No credential is needed for the **Merge Lookup with Payload** node — it's a plain Code node.
 
 ---
 
 ## 4. Test Payloads (Webhook Verification)
+
+> The examples below use `SECURE-TOKEN-2026` as a placeholder — replace it with whatever value you actually set in the Header Auth credential in step 3. There is no hardcoded secret in the workflow anymore (there used to be, and it had a fail-open bug — see `.Archive/log.md` `BK1-ISS-002`); the value only exists in your n8n credential store now.
 
 Use `curl` or Postman to send HTTP POST requests to the Webhook URL:
 
@@ -103,7 +106,11 @@ curl -X POST "http://localhost:5678/webhook/ca-notification" \
 
 ### Test Case 2: Voluntary Choice Event (TEND - Urgent Tier, 2 Days to Deadline)
 
+> **Corrected 2026-08-16:** the original fixed `electionDeadline` (`2026-08-04`) is now in the past relative to today, so this example silently stopped producing URGENT and started producing BREACH instead — a reader would get a real but mislabeled result. Use a relative date so this stays correct regardless of when you run it (`IF Deadline Gate`'s URGENT band is `1 <= daysToDeadline < 3`, see `workflow.json` node `node-deadline-gate-10`).
+
 ```bash
+DEADLINE=$(date -u -d "+2 days 17:00" +%Y-%m-%dT%H:%M:%SZ)   # macOS: date -u -v+2d -v17H -v0M -v0S
+
 curl -X POST "http://localhost:5678/webhook/ca-notification" \
   -H "Content-Type: application/json" \
   -H "X-Webhook-Secret: SECURE-TOKEN-2026" \
@@ -113,16 +120,20 @@ curl -X POST "http://localhost:5678/webhook/ca-notification" \
     "eventType": "TEND",
     "mandatoryVoluntaryFlag": "VOLU",
     "recordDate": "2026-08-01",
-    "electionDeadline": "2026-08-04T17:00:00Z",
+    "electionDeadline": "'"$DEADLINE"'",
     "offerPrice": 125.00
   }'
 ```
 
 ---
 
-### Test Case 3: Voluntary Deadline Breach (RHTS - 1 Day Past Deadline)
+### Test Case 3: Voluntary Deadline Breach (RHTS - Past Deadline)
+
+> **Corrected 2026-08-16:** same staleness issue — the original fixed deadline is now 15 days past, not 1. The BREACH conclusion still happened to hold (any `daysToDeadline <= 0` is BREACH), but the "1 Day Past" label was wrong, and a smaller drift could have flipped the tier entirely. Use a relative date here too.
 
 ```bash
+DEADLINE=$(date -u -d "-1 days 12:00" +%Y-%m-%dT%H:%M:%SZ)   # macOS: date -u -v-1d -v12H -v0M -v0S
+
 curl -X POST "http://localhost:5678/webhook/ca-notification" \
   -H "Content-Type: application/json" \
   -H "X-Webhook-Secret: SECURE-TOKEN-2026" \
@@ -132,7 +143,7 @@ curl -X POST "http://localhost:5678/webhook/ca-notification" \
     "eventType": "RHTS",
     "mandatoryVoluntaryFlag": "VOLU",
     "recordDate": "2026-07-25",
-    "electionDeadline": "2026-08-01T12:00:00Z",
+    "electionDeadline": "'"$DEADLINE"'",
     "rightsRatio": 0.20
   }'
 ```

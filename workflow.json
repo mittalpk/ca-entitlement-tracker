@@ -7,7 +7,8 @@
         "path": "ca-notification",
         "options": {
           "responseCode": 200
-        }
+        },
+        "authentication": "headerAuth"
       },
       "id": "node-webhook-01",
       "name": "Webhook Trigger",
@@ -16,11 +17,17 @@
       "position": [
         250,
         300
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "credential-webhook-secret",
+          "name": "BK1 Webhook Secret"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "// === CONSTANTS & VALIDATION ===\nconst ROUNDING_DP = 2;\nconst EXPECTED_SECRET = \"SECURE-TOKEN-2026\";\nconst REQUIRED_FIELDS = ['eventId', 'isin', 'eventType', 'mandatoryVoluntaryFlag', 'recordDate'];\nconst VALID_EVENT_TYPES = ['DVCA', 'DVSE', 'SPLF', 'RHTS', 'TEND', 'CHOS'];\nconst VALID_FLAGS = ['MAND', 'VOLU', 'CHOS'];\n\nconst payload = $json.body || $json;\nconst headers = $request?.headers || {};\nconst secretHeader = headers['x-webhook-secret'] || headers['X-Webhook-Secret'] || payload.webhookSecret;\n\nif (secretHeader && secretHeader !== EXPECTED_SECRET) {\n  throw new Error(`UNAUTHORIZED: Invalid X-Webhook-Secret token.`);\n}\n\nfor (const field of REQUIRED_FIELDS) {\n  if (!payload[field]) {\n    throw new Error(`MISSING_FIELD: Mandatory field '${field}' is missing.`);\n  }\n}\n\nif (!VALID_EVENT_TYPES.includes(payload.eventType)) {\n  throw new Error(`INVALID_EVENT_TYPE: '${payload.eventType}' is not supported.`);\n}\n\nif (!VALID_FLAGS.includes(payload.mandatoryVoluntaryFlag)) {\n  throw new Error(`INVALID_FLAG: '${payload.mandatoryVoluntaryFlag}' is not recognized.`);\n}\n\nif (['VOLU', 'CHOS'].includes(payload.mandatoryVoluntaryFlag) && !payload.electionDeadline) {\n  throw new Error(`MISSING_ELECTION_DEADLINE: Voluntary event requires electionDeadline.`);\n}\n\nreturn {\n  json: {\n    ...payload,\n    validatedAt: new Date().toISOString()\n  }\n};"
+        "jsCode": "// === CONSTANTS & VALIDATION ===\nconst ROUNDING_DP = 2;\nconst REQUIRED_FIELDS = ['eventId', 'isin', 'eventType', 'mandatoryVoluntaryFlag', 'recordDate'];\nconst VALID_EVENT_TYPES = ['DVCA', 'DVSE', 'SPLF', 'RHTS', 'TEND', 'CHOS'];\nconst VALID_FLAGS = ['MAND', 'VOLU', 'CHOS'];\n\n// Authentication is enforced natively by the Webhook Trigger node's Header Auth\n// credential (n8n rejects any request with a missing or wrong X-Webhook-Secret\n// with HTTP 401 before this node ever runs) - see docs/03a-security-architecture.md.\n// This node no longer re-checks the secret: a prior version compared it here with\n// a hardcoded literal and a bug that skipped validation when the header was absent\n// (fixed 2026-08-16, see docs/log.md BK1-ISS-002).\nconst payload = $json.body || $json;\n\nfor (const field of REQUIRED_FIELDS) {\n  if (!payload[field]) {\n    throw new Error(`MISSING_FIELD: Mandatory field '${field}' is missing.`);\n  }\n}\n\nif (!VALID_EVENT_TYPES.includes(payload.eventType)) {\n  throw new Error(`INVALID_EVENT_TYPE: '${payload.eventType}' is not supported.`);\n}\n\nif (!VALID_FLAGS.includes(payload.mandatoryVoluntaryFlag)) {\n  throw new Error(`INVALID_FLAG: '${payload.mandatoryVoluntaryFlag}' is not recognized.`);\n}\n\nif (['VOLU', 'CHOS'].includes(payload.mandatoryVoluntaryFlag) && !payload.electionDeadline) {\n  throw new Error(`MISSING_ELECTION_DEADLINE: Voluntary event requires electionDeadline.`);\n}\n\nreturn {\n  json: {\n    ...payload,\n    validatedAt: new Date().toISOString()\n  }\n};"
       },
       "id": "node-validation-02",
       "name": "Validation Code Node",
@@ -60,12 +67,30 @@
         "value1": "={{ $json.eventType }}",
         "rules": {
           "rules": [
-            { "value2": "DVCA", "output": 0 },
-            { "value2": "DVSE", "output": 1 },
-            { "value2": "SPLF", "output": 2 },
-            { "value2": "RHTS", "output": 3 },
-            { "value2": "TEND", "output": 4 },
-            { "value2": "CHOS", "output": 4 }
+            {
+              "value2": "DVCA",
+              "output": 0
+            },
+            {
+              "value2": "DVSE",
+              "output": 1
+            },
+            {
+              "value2": "SPLF",
+              "output": 2
+            },
+            {
+              "value2": "RHTS",
+              "output": 3
+            },
+            {
+              "value2": "TEND",
+              "output": 4
+            },
+            {
+              "value2": "CHOS",
+              "output": 4
+            }
           ]
         }
       },
@@ -74,7 +99,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
       "position": [
-        940,
+        1000,
         300
       ]
     },
@@ -87,7 +112,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
+        1260,
         150
       ]
     },
@@ -100,7 +125,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
+        1260,
         280
       ]
     },
@@ -113,7 +138,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
+        1260,
         410
       ]
     },
@@ -126,7 +151,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
+        1260,
         540
       ]
     },
@@ -139,7 +164,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
+        1260,
         670
       ]
     },
@@ -152,7 +177,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1500,
+        1560,
         400
       ]
     },
@@ -163,17 +188,11 @@
       "id": "node-llm-chain-11",
       "name": "Basic LLM Chain",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
-      "typeVersion": 1,
+      "typeVersion": 1.5,
       "position": [
-        1750,
+        1810,
         400
-      ],
-      "credentials": {
-        "openAiApi": {
-          "id": "credential-openai",
-          "name": "OpenAI account"
-        }
-      }
+      ]
     },
     {
       "parameters": {
@@ -187,7 +206,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2,
       "position": [
-        1980,
+        2040,
         400
       ],
       "credentials": {
@@ -230,7 +249,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        2210,
+        2270,
         400
       ],
       "credentials": {
@@ -239,6 +258,41 @@
           "name": "Google Sheets account"
         }
       }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "node-lm-model-11b",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1810,
+        520
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "credential-openai",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n's Google Sheets node in \"lookup\" mode REPLACES the item JSON with the\n// matched row's columns - it does not merge with the incoming payload. Every\n// node downstream of the lookup (starting with the Switch node's routing\n// condition on eventType) needs fields from BOTH the original webhook payload\n// and the looked-up position/rate data. Found by functional validation\n// 2026-08-16 (see PORTFOLIO-HEALTH-REPORT.md) - without this node, the Switch\n// node's $json.eventType would be undefined for every single request, and no\n// event would ever route to a formula branch.\nconst validated = $('Validation Code Node').item.json;\nconst positionData = $json;\n\nreturn {\n  json: {\n    ...validated,\n    ...positionData\n  }\n};"
+      },
+      "id": "node-merge-lookup-03b",
+      "name": "Merge Lookup with Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        300
+      ]
     }
   ],
   "connections": {
@@ -268,7 +322,7 @@
       "main": [
         [
           {
-            "node": "Switch eventType",
+            "node": "Merge Lookup with Payload",
             "type": "main",
             "index": 0
           }
@@ -396,6 +450,28 @@
         [
           {
             "node": "Google Sheets Audit Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Lookup with Payload": {
+      "main": [
+        [
+          {
+            "node": "Switch eventType",
             "type": "main",
             "index": 0
           }

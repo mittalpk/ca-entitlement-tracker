@@ -57,35 +57,41 @@ C4Context
 
 ## 3. C4 — Container diagram
 
+> **Corrected 2026-08-16:** this diagram previously showed `sheetsLookup -> switchNode: "Event + position rows"` — implying the Sheets lookup passes the original webhook event through to the router. It doesn't: n8n's Google Sheets node in lookup mode *replaces* the item JSON with the matched row, dropping the webhook payload entirely. That false assumption was the exact root cause of a real bug (`BK1-ISS-004` in `.Archive/log.md`) that would have broken 100% of live requests — the Switch node routes on `eventType`, a field only the pre-lookup payload had. A `Merge Lookup with Payload` node was added between the lookup and the router to restore it; `llmChain` was also split into a chain node plus a separate `OpenAI Chat Model` node, since n8n's LangChain nodes require an explicit `ai_languageModel` connection rather than a bare credential on the chain node itself (`BK1-ISS-003`). Both are reflected below.
+
 ```mermaid
 C4Container
   title BK1 — Container View
 
-  Container(webhook, "Webhook Trigger", "n8n Webhook node", "Entry point; receives HTTP POST MT564-shaped payload")
+  Container(webhook, "Webhook Trigger", "n8n Webhook node", "Entry point; receives HTTP POST MT564-shaped payload; Header Auth credential rejects missing/wrong X-Webhook-Secret with HTTP 401 before this node's output is even produced")
   Container(validCode, "Validation & Classification", "n8n Code node", "Validates required fields; classifies eventType and mandatoryVoluntaryFlag; returns HTTP 400 on invalid input")
-  Container(sheetsLookup, "Position Lookup", "n8n Google Sheets node", "Retrieves all client positions for the ISIN using positionAsOfRecordDate field exclusively")
+  Container(sheetsLookup, "Position Lookup", "n8n Google Sheets node", "Retrieves all client positions for the ISIN using positionAsOfRecordDate field exclusively; REPLACES the item JSON with the matched row (n8n lookup-mode behavior) — does not carry the webhook payload forward")
+  Container(mergeNode, "Merge Lookup with Payload", "n8n Code node", "Restores the validated webhook payload (pulled explicitly from the Validation node by name) alongside the looked-up position row, before anything downstream needs both")
   Container(switchNode, "Event Router", "n8n Switch node", "Routes by eventType into one of 5 formula branches")
   Container(formulaBranches, "Formula Branches (×5)", "n8n Code nodes", "DVCA / DVSE / SPLF / RHTS / TEND-CHOS — each implements exactly one deterministic formula")
   Container(ifNode, "Deadline Gate", "n8n IF node", "For VOLU/CHOS only: computes daysToDeadline; routes to escalation tier")
-  Container(llmChain, "LLM Notification Drafter", "n8n Basic LLM Chain node", "Receives locked entitlement figures; drafts plain-language client notification text")
+  Container(llmChain, "LLM Notification Drafter", "n8n Basic LLM Chain node", "Receives locked entitlement figures; drafts plain-language client notification text; delegates the actual model call to llmModel via ai_languageModel")
+  Container(llmModel, "OpenAI Chat Model", "n8n Language Model node", "Holds the OpenAI credential and model selection; connected to llmChain via the ai_languageModel connector, not a bare credential on the chain node")
   Container(dispatch, "Notification Dispatch", "n8n Gmail / Slack node", "Sends notification; urgent/breach on separate channel")
   Container(auditAppend, "Audit Trail Writer", "n8n Google Sheets Append node", "Appends one structured record per position; append-only — no updates")
 
   ContainerDb(posSheet, "Position Book", "Google Sheets tab", "Mock SoR — ISIN → client positions as of record date")
   ContainerDb(auditLog, "Audit Log", "Google Sheets tab", "17-column append-only entitlement + escalation log")
-  ContainerDb(llmApi, "LLM API", "External REST API", "OpenAI GPT-4o or equivalent")
+  ContainerDb(llmApi, "LLM API", "External REST API", "OpenAI GPT-4o-mini or equivalent")
 
   Rel(webhook, validCode, "JSON payload")
   Rel(validCode, sheetsLookup, "Validated event object")
-  Rel(sheetsLookup, switchNode, "Event + position rows")
+  Rel(sheetsLookup, mergeNode, "Position row only (webhook payload already dropped by n8n)")
+  Rel(mergeNode, switchNode, "Merged: validated event + position row")
   Rel(switchNode, formulaBranches, "Routes by eventType")
   Rel(formulaBranches, ifNode, "Calculated entitlement object")
   Rel(ifNode, llmChain, "Entitlement + escalation tier")
+  Rel(llmModel, llmChain, "ai_languageModel connection")
   Rel(llmChain, dispatch, "Draft notification text")
   Rel(llmChain, auditAppend, "Full record including LLM output")
   Rel(sheetsLookup, posSheet, "ISIN lookup")
   Rel(auditAppend, auditLog, "Append row")
-  Rel(llmChain, llmApi, "Prompt + locked variables")
+  Rel(llmModel, llmApi, "Prompt + locked variables")
 ```
 
 ---
