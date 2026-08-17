@@ -1,9 +1,9 @@
-# Explicitly ignore all dotfiles and dotdirectories (e.g. .Archive, .env, .vscode, .n8n, etc.)
+# Explicitly ignore all dotfiles and dotdirectories (e.g. .Archive, .env, .vscode, .n8n, .agents, etc.)
 .*
 
-# Allow git to track .gitignore and .agents
+# Allow git to track .gitignore
 !.gitignore
-!.agents
+
 
 
 # Dependencies
