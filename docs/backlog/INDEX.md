@@ -44,7 +44,7 @@
 
 | Story | Title | Status |
 |---|---|---|
-| [BK1-US-021](BK1-US-021.md) | Unit test cases TC-001–TC-008 executed | NOT STARTED |
+| [BK1-US-021](done/BK1-US-021.md) | Unit test cases TC-001–TC-008 executed | Done |
 | [BK1-US-022](BK1-US-022.md) | Integration scenarios I-001–I-004 executed | NOT STARTED |
 | [BK1-US-023](BK1-US-023.md) | End-to-end scenarios E-001–E-003 executed | NOT STARTED |
 | [BK1-US-024](BK1-US-024.md) | UAT scenarios U-001–U-002 performed by stakeholder role | NOT STARTED |

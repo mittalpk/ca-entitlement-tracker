@@ -38,18 +38,18 @@ This document consumes `requirements.md` §9 (acceptance criteria and test cases
 
 These map directly to `requirements.md` §9.2 test cases.
 
-| TC ID | Scenario | Input | Expected output | Req IDs | AC IDs |
-|---|---|---|---|---|---|
-| TC-001 | DVCA — non-round entitlement (half-up) | `eventType=DVCA`, `position=14999`, `grossRatePerShare=0.42` | `entitlementCash=6299.58` | FR-006 | AC-005 |
-| TC-001b | DVCA — verify NOT using banker's rounding | `position=15001`, `grossRatePerShare=0.015` | `entitlementCash=225.02` (half-up), NOT 225.01 | FR-006 | AC-005 |
-| TC-002 | DVSE — fractional-share remainder | `position=153`, `stockDividendRatio=0.10`, `fractionalCashPrice=25.00` | `entitlementShares=15`, `fractionalCash=7.50` | FR-007 | AC-006 |
-| TC-002b | DVSE — zero fractional remainder | `position=150`, `stockDividendRatio=0.10`, `fractionalCashPrice=25.00` | `entitlementShares=15`, `fractionalCash=0.00` (not null) | FR-007 | AC-006 |
-| TC-003 | RHTS — 2 days to deadline (URGENT tier) | `eventType=RHTS`, `mandatoryVoluntaryFlag=VOLU`, `daysToDeadline=2` | URGENT tier; separate channel; `electionStatus=PENDING_ELECTION` | FR-009, FR-015 | AC-008, AC-011, AC-012 |
-| TC-004 | RHTS — 1 day past deadline (BREACH) | `electionDeadline=yesterday` (daysToDeadline=-1) | BREACH tier; `incidentFlag=TRUE`; `breachNotes` populated; no credit | FR-009, FR-016, FR-025 | AC-013 |
-| TC-005 | DVCA — zero-holdings position | `position=0`, `grossRatePerShare=0.42` | `entitlementCash=0.00`; audit row written; no error | FR-011 | AC-004, AC-010 |
-| TC-006 | SPLF — clean forward split | `splitRatio="3:1"`, `position=10000` | `newPosition=30000`; `entitlementCash=0`; `entitlementShares=0` | FR-008 | AC-007 |
-| TC-007 | TEND — multi-option choice | `eventType=TEND`, `optionDetails` with 3 options | 3 `PENDING_ELECTION` records; no entitlement | FR-010 | AC-009 |
-| TC-008 | Validation rejection — missing field | Payload missing `recordDate` | HTTP 400; no downstream execution | FR-002 | AC-002 |
+| TC ID | Scenario | Input | Expected output | Req IDs | AC IDs | Result (Executed 2026-08-17) |
+|---|---|---|---|---|---|---|
+| TC-001 | DVCA — non-round entitlement (half-up) | `eventType=DVCA`, `position=14999`, `grossRatePerShare=0.42` | `entitlementCash=6299.58` | FR-006 | AC-005 | **PASS** (`entitlementCash=6299.58`) |
+| TC-001b | DVCA — verify NOT using banker's rounding | `position=15001`, `grossRatePerShare=0.015` | `entitlementCash=225.02` (half-up), NOT 225.01 | FR-006 | AC-005 | **PASS** (`entitlementCash=225.02`) |
+| TC-002 | DVSE — fractional-share remainder | `position=153`, `stockDividendRatio=0.10`, `fractionalCashPrice=25.00` | `entitlementShares=15`, `fractionalCash=7.50` | FR-007 | AC-006 | **PASS** (`shares=15`, `fracCash=7.50`) |
+| TC-002b | DVSE — zero fractional remainder | `position=150`, `stockDividendRatio=0.10`, `fractionalCashPrice=25.00` | `entitlementShares=15`, `fractionalCash=0.00` (not null) | FR-007 | AC-006 | **PASS** (`shares=15`, `fracCash=0.00`) |
+| TC-003 | RHTS — 2 days to deadline (URGENT tier) | `eventType=RHTS`, `mandatoryVoluntaryFlag=VOLU`, `daysToDeadline=2` | URGENT tier; separate channel; `electionStatus=PENDING_ELECTION` | FR-009, FR-015 | AC-008, AC-011, AC-012 | **PASS** (`tier=URGENT`, `days=2`, `shares=100`) |
+| TC-004 | RHTS — 1 day past deadline (BREACH) | `electionDeadline=yesterday` (daysToDeadline=-1) | BREACH tier; `incidentFlag=TRUE`; `breachNotes` populated; no credit | FR-009, FR-016, FR-025 | AC-013 | **PASS** (`tier=BREACH`, `days=-1`) |
+| TC-005 | DVCA — zero-holdings position | `position=0`, `grossRatePerShare=0.42` | `entitlementCash=0.00`; audit row written; no error | FR-011 | AC-004, AC-010 | **PASS** (`entitlementCash=0.00`) |
+| TC-006 | SPLF — clean forward split | `splitRatio="3:1"`, `position=10000` | `newPosition=30000`; `entitlementCash=0`; `entitlementShares=0` | FR-008 | AC-007 | **PASS** (`newPosition=30000`) |
+| TC-007 | TEND — multi-option choice | `eventType=TEND`, `optionDetails` with 3 options | 3 `PENDING_ELECTION` records; no entitlement | FR-010 | AC-009 | **PASS** (`optionsCount=3`, `tier=REMINDER`) |
+| TC-008 | Validation rejection — missing field | Payload missing `recordDate` | HTTP 400; no downstream execution | FR-002 | AC-002 | **PASS** (`MISSING_FIELD` caught) |
 
 ### Boundary value analysis summary
 
