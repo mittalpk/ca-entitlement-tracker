@@ -412,6 +412,118 @@
         416,
         576
       ]
+    },
+    {
+      "parameters": {
+        "content": "# \ud83c\udfe6 Corporate Actions Entitlement Calculator & Deadline Tracker\n\n**Overview:** Real-time processing engine for Corporate Action events (ISO 20022: DVCA, DVSE, SPLF, RHTS, TEND, CHOS).\n\n### \u26a1 Quick Setup Guide:\n1. **Webhook Secret**: Set `X-Webhook-Secret` header in your HTTP request matching your environment credential.\n2. **Google Sheets**: Connect your Google Sheets OAuth credential and point to your Position Book & Audit Trail sheets.\n3. **OpenAI Credentials**: Connect your OpenAI API key for LLM-based client notification drafting.",
+        "height": 300,
+        "width": 550,
+        "color": 6
+      },
+      "id": "sticky-hero-overview",
+      "name": "Sticky Note - Hero Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1. Ingestion & Validation\n- Receives ISO 20022 payloads via `POST /ca-notification`.\n- Verifies mandatory fields (`eventId`, `isin`, `eventType`, `recordDate`).\n- Enforces voluntary election deadline rules.",
+        "height": 280,
+        "width": 380,
+        "color": 4
+      },
+      "id": "sticky-01-ingestion",
+      "name": "Sticky Note - Ingestion & Validation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 2. Position Book Lookup\n- Queries Google Sheets `PositionBook` by `isin`.\n- Merges settled security position data (`positionAsOfRecordDate`, `accountNumber`) with incoming event notice.",
+        "height": 280,
+        "width": 360,
+        "color": 5
+      },
+      "id": "sticky-02-lookup",
+      "name": "Sticky Note - Position Lookup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 3. Deterministic Event Math Engine\nRoutes events by `eventType` to execute zero-precision-loss financial math formulas:\n- **DVCA**: Cash Dividend = `roundHalfUp(position * grossRate)`\n- **DVSE**: Stock Dividend & Fractional Cash\n- **SPLF**: Stock Split ratio adjustment\n- **RHTS**: Rights Issue entitlement allocation\n- **TEND/CHOS**: Voluntary Tender/Choice position booking",
+        "height": 680,
+        "width": 660,
+        "color": 7
+      },
+      "id": "sticky-03-math-engine",
+      "name": "Sticky Note - Math Engine",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        10,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 4. Deadline Gate\nComputes `daysToDeadline` for voluntary events (`VOLU`/`CHOS`) and assigns escalation tiers:\n- `INFORMATIONAL` (>10 days)\n- `REMINDER` (3\u201310 days)\n- `URGENT` (1\u20133 days)\n- `BREACH` (<1 day)",
+        "height": 300,
+        "width": 240,
+        "color": 3
+      },
+      "id": "sticky-04-deadline-gate",
+      "name": "Sticky Note - Deadline Gate",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        700,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 5. LLM Chain (OpenAI)\nDrafts professional client notification emails.\n\n*Bounded Guardrail:* Prompts strictly lock financial figures (`entitlementCash`, `entitlementShares`) to prevent hallucination.",
+        "height": 420,
+        "width": 240,
+        "color": 2
+      },
+      "id": "sticky-05-llm-chain",
+      "name": "Sticky Note - LLM Chain",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 6. Dispatch & Immutable Audit Trail\n- **Gmail/Slack**: Sends personalized corporate action notification to account holders.\n- **Audit Log**: Appends complete audit record to Google Sheets `AuditTrail` for compliance reporting.",
+        "height": 280,
+        "width": 620,
+        "color": 1
+      },
+      "id": "sticky-06-dispatch-audit",
+      "name": "Sticky Note - Dispatch & Audit",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1220,
+        140
+      ]
     }
   ],
   "connections": {
