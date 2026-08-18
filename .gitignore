@@ -1,0 +1,31 @@
+# Explicitly ignore all dotfiles and dotdirectories (e.g. .Archive, .env, .vscode, .n8n, .agents, etc.)
+.*
+
+# Allow git to track .gitignore
+!.gitignore
+
+
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Credentials
+credentials.json
+secrets.json
+
+# n8n Local Data & Logs
+n8n_data/
+logs/
+*.log
+
+# IDE & OS Metadata
+Thumbs.db
+*.swp
+*.swo
+
+# Temporary Files
+tmp/
+temp/

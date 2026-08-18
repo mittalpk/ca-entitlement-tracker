@@ -1,0 +1,622 @@
+{
+  "name": "ca-entitlement-tracker-workflow-v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ca-notification",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "id": "002497f2-3dca-4c31-a1e4-25eac40667af",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        208
+      ],
+      "webhookId": "d135a6fe-6d9a-4d1b-a1c9-e4270a67235c",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "credential-webhook-secret",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// === CONSTANTS & VALIDATION ===\nconst ROUNDING_DP = 2;\nconst REQUIRED_FIELDS = ['eventId', 'isin', 'eventType', 'mandatoryVoluntaryFlag', 'recordDate'];\nconst VALID_EVENT_TYPES = ['DVCA', 'DVSE', 'SPLF', 'RHTS', 'TEND', 'CHOS'];\nconst VALID_FLAGS = ['MAND', 'VOLU', 'CHOS'];\n\nconst payload = $json.body || $json;\n\nfor (const field of REQUIRED_FIELDS) {\n  if (!payload[field]) {\n    throw new Error(`MISSING_FIELD: Mandatory field '${field}' is missing.`);\n  }\n}\n\nif (!VALID_EVENT_TYPES.includes(payload.eventType)) {\n  throw new Error(`INVALID_EVENT_TYPE: '${payload.eventType}' is not supported.`);\n}\n\nif (!VALID_FLAGS.includes(payload.mandatoryVoluntaryFlag)) {\n  throw new Error(`INVALID_FLAG: '${payload.mandatoryVoluntaryFlag}' is not recognized.`);\n}\n\nif (['VOLU', 'CHOS'].includes(payload.mandatoryVoluntaryFlag) && !payload.electionDeadline) {\n  throw new Error(`MISSING_ELECTION_DEADLINE: Voluntary event requires electionDeadline.`);\n}\n\nreturn {\n  json: {\n    ...payload,\n    validatedAt: new Date().toISOString()\n  }\n};"
+      },
+      "id": "6485265b-7256-4758-95d1-bb704af7dff7",
+      "name": "Validation Code Node",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/1Dw-40vgzds91Q1z_s2L1nZFxPgX9-B_JAdnAlSFM3rU/edit",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PositionBook",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "isin",
+              "lookupValue": "={{ $json.isin }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "abb1a925-9c6c-43f5-958b-39b225e6fe03",
+      "name": "Google Sheets Lookup",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -352,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "credential-google-sheets",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const validated = $('Validation Code Node').item.json;\nconst positionData = $json;\n\nreturn {\n  json: {\n    ...validated,\n    ...positionData\n  }\n};"
+      },
+      "id": "dd9d9c33-0fc4-44b0-ad99-91fb9e202f21",
+      "name": "Merge Lookup with Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "DVCA"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "DVSE"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "SPLF"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "RHTS"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "TEND"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "CHOS"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "11947d9b-242a-417c-9c09-68167daa3446",
+      "name": "Switch eventType",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        32,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function roundHalfUp(value, dp = 2) {\n  const factor = Math.pow(10, dp);\n  return Math.floor(value * factor + 0.5) / factor;\n}\n\nconst pos = parseFloat($json.positionAsOfRecordDate || 0);\nconst rate = parseFloat($json.grossRatePerShare || 0);\nconst entitlementCash = roundHalfUp(pos * rate, 2);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash,\n    entitlementShares: null,\n    fractionalCash: null,\n    newPosition: null\n  }\n};"
+      },
+      "id": "dd183dd7-5b55-4024-9b50-afd83c068043",
+      "name": "Formula - DVCA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let escalationTier = 'NONE';\nlet daysToDeadline = null;\n\nif (['VOLU', 'CHOS'].includes($json.mandatoryVoluntaryFlag) && $json.electionDeadline) {\n  const deadline = new Date($json.electionDeadline);\n  const now = new Date();\n  const diffMs = deadline.getTime() - now.getTime();\n  daysToDeadline = Math.floor(diffMs / (1000 * 60 * 60 * 24));\n\n  if (daysToDeadline > 10) {\n    escalationTier = 'INFORMATIONAL';\n  } else if (daysToDeadline >= 3 && daysToDeadline <= 10) {\n    escalationTier = 'REMINDER';\n  } else if (daysToDeadline >= 1 && daysToDeadline < 3) {\n    escalationTier = 'URGENT';\n  } else {\n    escalationTier = 'BREACH';\n  }\n}\n\nreturn {\n  json: {\n    ...$json,\n    escalationTier,\n    daysToDeadline\n  }\n};"
+      },
+      "id": "6de6c8f3-9c14-4264-9a6a-750bb2997b4e",
+      "name": "IF Deadline Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \"Draft a clear, professional corporate action client notification for event \" + $json.eventId + \". Event Type: \" + $json.eventType + \". Client Account: \" + ($json.accountNumber || \"N/A\") + \". Entitlement Cash: \" + ($json.entitlementCash !== null ? $json.entitlementCash : 0) + \". Entitlement Shares: \" + ($json.entitlementShares !== null ? $json.entitlementShares : 0) + \". Escalation Tier: \" + $json.escalationTier + \". Days to Deadline: \" + ($json.daysToDeadline !== null ? $json.daysToDeadline : \"N/A\") + \". DO NOT alter any financial figures.\" }}"
+      },
+      "id": "75aed820-ac6a-49ec-8990-fcd4d656b62b",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        976,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c977d0f4-5064-4ed6-a5c4-659715f3dd98",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        976,
+        432
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "credential-openai",
+          "name": "OpenAI API account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "ca-notifications@example.com",
+        "subject": "={{ \"[Corporate Action \" + ($('IF Deadline Gate').item.json.escalationTier || 'NONE') + \"] Notification for Event \" + $('IF Deadline Gate').item.json.eventId }}",
+        "message": "={{ $json.text || $('Basic LLM Chain').item.json.text || \"Corporate Action Entitlement Notice\" }}",
+        "options": {}
+      },
+      "id": "aa66d710-80d8-4c24-aa5b-ac8daed1f19c",
+      "name": "Gmail / Slack Notification Dispatch",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        304
+      ],
+      "webhookId": "fcc04e61-3948-410e-9f7f-8fcd825286fd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "credential-gmail",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const entitlementData = $('IF Deadline Gate').item.json;\nconst llmOutput = $('Basic LLM Chain').item.json;\n\nreturn {\n  json: {\n    eventId: entitlementData.eventId,\n    isin: entitlementData.isin,\n    eventType: entitlementData.eventType,\n    mandatoryVoluntaryFlag: entitlementData.mandatoryVoluntaryFlag,\n    recordDate: entitlementData.recordDate,\n    electionDeadline: entitlementData.electionDeadline || '',\n    accountNumber: entitlementData.accountNumber || '',\n    clientName: entitlementData.clientName || '',\n    positionAsOfRecordDate: entitlementData.positionAsOfRecordDate || 0,\n    entitlementCash: entitlementData.entitlementCash || 0.00,\n    entitlementShares: entitlementData.entitlementShares || 0,\n    fractionalCash: entitlementData.fractionalCash || 0.00,\n    newPosition: entitlementData.newPosition || '',\n    escalationTier: entitlementData.escalationTier || 'NONE',\n    daysToDeadline: entitlementData.daysToDeadline !== null ? entitlementData.daysToDeadline : '',\n    llmNotificationDraft: llmOutput.text || '',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "node-prepare-audit-12a",
+      "name": "Prepare Audit Item",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/1Dw-40vgzds91Q1z_s2L1nZFxPgX9-B_JAdnAlSFM3rU/edit",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AuditTrail"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "da7c0754-ef59-463a-a5d7-e0a940de36fb",
+      "name": "Google Sheets Audit Append",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1632,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "credential-google-sheets",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function roundHalfUp(value, dp = 2) {\n  const factor = Math.pow(10, dp);\n  return Math.floor(value * factor + 0.5) / factor;\n}\n\nconst pos = parseFloat($json.positionAsOfRecordDate || 0);\nconst ratio = parseFloat($json.stockDividendRatio || 0);\nconst fracPrice = parseFloat($json.fractionalCashPrice || 0);\n\nconst rawShares = pos * ratio;\nconst entitlementShares = Math.floor(rawShares);\nconst fracRemainder = rawShares - entitlementShares;\nconst fractionalCash = roundHalfUp(fracRemainder * fracPrice, 2);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash: 0.00,\n    entitlementShares,\n    fractionalCash,\n    newPosition: null\n  }\n};"
+      },
+      "id": "558f26a0-99a1-4e3c-b84b-037781005d8a",
+      "name": "Formula - DVSE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const pos = parseFloat($json.positionAsOfRecordDate || 0);\nconst ratioStr = $json.splitRatio || \"1:1\";\nconst parts = ratioStr.split(':').map(Number);\nconst newPos = pos * (parts[0] / parts[1]);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash: 0.00,\n    entitlementShares: 0,\n    fractionalCash: 0.00,\n    newPosition: newPos\n  }\n};"
+      },
+      "id": "1e64faf1-bf9c-4f82-9af8-6378daec1fb5",
+      "name": "Formula - SPLF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const pos = parseFloat($json.positionAsOfRecordDate || 0);\nconst ratio = parseFloat($json.rightsRatio || 0);\nconst rightsEntitlement = Math.floor(pos * ratio);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash: 0.00,\n    entitlementShares: rightsEntitlement,\n    fractionalCash: 0.00,\n    newPosition: null\n  }\n};"
+      },
+      "id": "cb641a5b-a730-4c5d-b572-afecfc8fa1fe",
+      "name": "Formula - RHTS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const pos = parseFloat($json.positionAsOfRecordDate || 0);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash: 0.00,\n    entitlementShares: pos,\n    fractionalCash: 0.00,\n    newPosition: null\n  }\n};"
+      },
+      "id": "949554d6-a18e-4abb-be9f-a8025e87216a",
+      "name": "Formula - TEND/CHOS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        576
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validation Code Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation Code Node": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Lookup": {
+      "main": [
+        [
+          {
+            "node": "Merge Lookup with Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Lookup with Payload": {
+      "main": [
+        [
+          {
+            "node": "Switch eventType",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch eventType": {
+      "main": [
+        [
+          {
+            "node": "Formula - DVCA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formula - DVSE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formula - SPLF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formula - RHTS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formula - TEND/CHOS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formula - TEND/CHOS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formula - DVCA": {
+      "main": [
+        [
+          {
+            "node": "IF Deadline Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formula - DVSE": {
+      "main": [
+        [
+          {
+            "node": "IF Deadline Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formula - SPLF": {
+      "main": [
+        [
+          {
+            "node": "IF Deadline Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formula - RHTS": {
+      "main": [
+        [
+          {
+            "node": "IF Deadline Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formula - TEND/CHOS": {
+      "main": [
+        [
+          {
+            "node": "IF Deadline Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Deadline Gate": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Gmail / Slack Notification Dispatch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail / Slack Notification Dispatch": {
+      "main": [
+        [
+          {
+            "node": "Prepare Audit Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Audit Item": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Audit Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
