@@ -1,5 +1,11 @@
 {
+  "updatedAt": "2026-08-18T15:06:21.945Z",
+  "createdAt": "2026-08-18T15:03:39.685Z",
+  "id": "X2V9liHtnlTM33Ts",
   "name": "ca-entitlement-tracker-workflow-v2",
+  "description": null,
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -8,18 +14,18 @@
         "authentication": "headerAuth",
         "options": {}
       },
-      "id": "002497f2-3dca-4c31-a1e4-25eac40667af",
+      "id": "65de467f-53d7-46e5-9bd8-51d267a6b2fe",
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -752,
-        208
+        48,
+        336
       ],
       "webhookId": "d135a6fe-6d9a-4d1b-a1c9-e4270a67235c",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "credential-webhook-secret",
+          "id": "Ve9KmHYrqOrnhwfK",
           "name": "Header Auth account"
         }
       }
@@ -28,13 +34,13 @@
       "parameters": {
         "jsCode": "// === CONSTANTS & VALIDATION ===\nconst ROUNDING_DP = 2;\nconst REQUIRED_FIELDS = ['eventId', 'isin', 'eventType', 'mandatoryVoluntaryFlag', 'recordDate'];\nconst VALID_EVENT_TYPES = ['DVCA', 'DVSE', 'SPLF', 'RHTS', 'TEND', 'CHOS'];\nconst VALID_FLAGS = ['MAND', 'VOLU', 'CHOS'];\n\nconst payload = $json.body || $json;\n\nfor (const field of REQUIRED_FIELDS) {\n  if (!payload[field]) {\n    throw new Error(`MISSING_FIELD: Mandatory field '${field}' is missing.`);\n  }\n}\n\nif (!VALID_EVENT_TYPES.includes(payload.eventType)) {\n  throw new Error(`INVALID_EVENT_TYPE: '${payload.eventType}' is not supported.`);\n}\n\nif (!VALID_FLAGS.includes(payload.mandatoryVoluntaryFlag)) {\n  throw new Error(`INVALID_FLAG: '${payload.mandatoryVoluntaryFlag}' is not recognized.`);\n}\n\nif (['VOLU', 'CHOS'].includes(payload.mandatoryVoluntaryFlag) && !payload.electionDeadline) {\n  throw new Error(`MISSING_ELECTION_DEADLINE: Voluntary event requires electionDeadline.`);\n}\n\nreturn {\n  json: {\n    ...payload,\n    validatedAt: new Date().toISOString()\n  }\n};"
       },
-      "id": "6485265b-7256-4758-95d1-bb704af7dff7",
+      "id": "6ffb6236-b75e-445e-9825-b8e5d699f467",
       "name": "Validation Code Node",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -544,
-        208
+        256,
+        336
       ]
     },
     {
@@ -60,32 +66,26 @@
         },
         "options": {}
       },
-      "id": "abb1a925-9c6c-43f5-958b-39b225e6fe03",
+      "id": "be208e81-ce44-4429-9bff-a09a6d25d0bf",
       "name": "Google Sheets Lookup",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        -352,
-        208
-      ],
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "credential-google-sheets",
-          "name": "Google Sheets account"
-        }
-      }
+        448,
+        336
+      ]
     },
     {
       "parameters": {
         "jsCode": "const validated = $('Validation Code Node').item.json;\nconst positionData = $json;\n\nreturn {\n  json: {\n    ...validated,\n    ...positionData\n  }\n};"
       },
-      "id": "dd9d9c33-0fc4-44b0-ad99-91fb9e202f21",
+      "id": "241052f8-2c4c-401a-9ef5-05fcd28734f3",
       "name": "Merge Lookup with Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -176,
-        208
+        624,
+        336
       ]
     },
     {
@@ -222,39 +222,39 @@
         },
         "options": {}
       },
-      "id": "11947d9b-242a-417c-9c09-68167daa3446",
+      "id": "7a79e7da-7575-4446-9b93-0f2f34af6086",
       "name": "Switch eventType",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        32,
-        176
+        832,
+        304
       ]
     },
     {
       "parameters": {
         "jsCode": "function roundHalfUp(value, dp = 2) {\n  const factor = Math.pow(10, dp);\n  return Math.floor(value * factor + 0.5) / factor;\n}\n\nconst pos = parseFloat($json.positionAsOfRecordDate || 0);\nconst rate = parseFloat($json.grossRatePerShare || 0);\nconst entitlementCash = roundHalfUp(pos * rate, 2);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash,\n    entitlementShares: null,\n    fractionalCash: null,\n    newPosition: null\n  }\n};"
       },
-      "id": "dd183dd7-5b55-4024-9b50-afd83c068043",
+      "id": "804134af-802d-44df-9976-6aa136cc10d9",
       "name": "Formula - DVCA",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        416,
-        48
+        1216,
+        176
       ]
     },
     {
       "parameters": {
         "jsCode": "let escalationTier = 'NONE';\nlet daysToDeadline = null;\n\nif (['VOLU', 'CHOS'].includes($json.mandatoryVoluntaryFlag) && $json.electionDeadline) {\n  const deadline = new Date($json.electionDeadline);\n  const now = new Date();\n  const diffMs = deadline.getTime() - now.getTime();\n  daysToDeadline = Math.floor(diffMs / (1000 * 60 * 60 * 24));\n\n  if (daysToDeadline > 10) {\n    escalationTier = 'INFORMATIONAL';\n  } else if (daysToDeadline >= 3 && daysToDeadline <= 10) {\n    escalationTier = 'REMINDER';\n  } else if (daysToDeadline >= 1 && daysToDeadline < 3) {\n    escalationTier = 'URGENT';\n  } else {\n    escalationTier = 'BREACH';\n  }\n}\n\nreturn {\n  json: {\n    ...$json,\n    escalationTier,\n    daysToDeadline\n  }\n};"
       },
-      "id": "6de6c8f3-9c14-4264-9a6a-750bb2997b4e",
+      "id": "d5f9a5b0-8244-4d28-a3cb-18fc2d75b6fb",
       "name": "IF Deadline Gate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        720,
-        304
+        1520,
+        432
       ]
     },
     {
@@ -262,31 +262,31 @@
         "promptType": "define",
         "text": "={{ \"Draft a clear, professional corporate action client notification for event \" + $json.eventId + \". Event Type: \" + $json.eventType + \". Client Account: \" + ($json.accountNumber || \"N/A\") + \". Entitlement Cash: \" + ($json.entitlementCash !== null ? $json.entitlementCash : 0) + \". Entitlement Shares: \" + ($json.entitlementShares !== null ? $json.entitlementShares : 0) + \". Escalation Tier: \" + $json.escalationTier + \". Days to Deadline: \" + ($json.daysToDeadline !== null ? $json.daysToDeadline : \"N/A\") + \". DO NOT alter any financial figures.\" }}"
       },
-      "id": "75aed820-ac6a-49ec-8990-fcd4d656b62b",
+      "id": "a7084acb-206b-4b26-b53d-468f84f55bd6",
       "name": "Basic LLM Chain",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.4,
       "position": [
-        976,
-        304
+        1776,
+        432
       ]
     },
     {
       "parameters": {
         "options": {}
       },
-      "id": "c977d0f4-5064-4ed6-a5c4-659715f3dd98",
+      "id": "0b9e9b99-e306-4b35-923b-15bff7070183",
       "name": "OpenAI Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        976,
-        432
+        1776,
+        560
       ],
       "credentials": {
         "openAiApi": {
-          "id": "credential-openai",
-          "name": "OpenAI API account"
+          "id": "aK9K7XrUgzBQziQt",
+          "name": "n8n free OpenAI API credits"
         }
       }
     },
@@ -297,33 +297,27 @@
         "message": "={{ $json.text || $('Basic LLM Chain').item.json.text || \"Corporate Action Entitlement Notice\" }}",
         "options": {}
       },
-      "id": "aa66d710-80d8-4c24-aa5b-ac8daed1f19c",
+      "id": "99a6c3c4-dd54-4745-90f4-0e7f01e845de",
       "name": "Gmail / Slack Notification Dispatch",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2,
       "position": [
-        1248,
-        304
+        2048,
+        432
       ],
-      "webhookId": "fcc04e61-3948-410e-9f7f-8fcd825286fd",
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "credential-gmail",
-          "name": "Gmail account"
-        }
-      }
+      "webhookId": "fcc04e61-3948-410e-9f7f-8fcd825286fd"
     },
     {
       "parameters": {
         "jsCode": "const entitlementData = $('IF Deadline Gate').item.json;\nconst llmOutput = $('Basic LLM Chain').item.json;\n\nreturn {\n  json: {\n    eventId: entitlementData.eventId,\n    isin: entitlementData.isin,\n    eventType: entitlementData.eventType,\n    mandatoryVoluntaryFlag: entitlementData.mandatoryVoluntaryFlag,\n    recordDate: entitlementData.recordDate,\n    electionDeadline: entitlementData.electionDeadline || '',\n    accountNumber: entitlementData.accountNumber || '',\n    clientName: entitlementData.clientName || '',\n    positionAsOfRecordDate: entitlementData.positionAsOfRecordDate || 0,\n    entitlementCash: entitlementData.entitlementCash || 0.00,\n    entitlementShares: entitlementData.entitlementShares || 0,\n    fractionalCash: entitlementData.fractionalCash || 0.00,\n    newPosition: entitlementData.newPosition || '',\n    escalationTier: entitlementData.escalationTier || 'NONE',\n    daysToDeadline: entitlementData.daysToDeadline !== null ? entitlementData.daysToDeadline : '',\n    llmNotificationDraft: llmOutput.text || '',\n    timestamp: new Date().toISOString()\n  }\n};"
       },
-      "id": "node-prepare-audit-12a",
+      "id": "4d1b6d14-1151-40e9-89be-8099f6a265a5",
       "name": "Prepare Audit Item",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1440,
-        304
+        2240,
+        432
       ]
     },
     {
@@ -346,183 +340,175 @@
         },
         "options": {}
       },
-      "id": "da7c0754-ef59-463a-a5d7-e0a940de36fb",
+      "id": "2d1b022b-4b7d-4f23-b8cf-2f23868c487c",
       "name": "Google Sheets Audit Append",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1632,
-        304
-      ],
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "credential-google-sheets",
-          "name": "Google Sheets account"
-        }
-      }
+        2432,
+        432
+      ]
     },
     {
       "parameters": {
         "jsCode": "function roundHalfUp(value, dp = 2) {\n  const factor = Math.pow(10, dp);\n  return Math.floor(value * factor + 0.5) / factor;\n}\n\nconst pos = parseFloat($json.positionAsOfRecordDate || 0);\nconst ratio = parseFloat($json.stockDividendRatio || 0);\nconst fracPrice = parseFloat($json.fractionalCashPrice || 0);\n\nconst rawShares = pos * ratio;\nconst entitlementShares = Math.floor(rawShares);\nconst fracRemainder = rawShares - entitlementShares;\nconst fractionalCash = roundHalfUp(fracRemainder * fracPrice, 2);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash: 0.00,\n    entitlementShares,\n    fractionalCash,\n    newPosition: null\n  }\n};"
       },
-      "id": "558f26a0-99a1-4e3c-b84b-037781005d8a",
+      "id": "c8a5850d-360a-4910-8605-848934ec9b77",
       "name": "Formula - DVSE",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        416,
-        192
+        1216,
+        320
       ]
     },
     {
       "parameters": {
         "jsCode": "const pos = parseFloat($json.positionAsOfRecordDate || 0);\nconst ratioStr = $json.splitRatio || \"1:1\";\nconst parts = ratioStr.split(':').map(Number);\nconst newPos = pos * (parts[0] / parts[1]);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash: 0.00,\n    entitlementShares: 0,\n    fractionalCash: 0.00,\n    newPosition: newPos\n  }\n};"
       },
-      "id": "1e64faf1-bf9c-4f82-9af8-6378daec1fb5",
+      "id": "8726d116-1cf9-4090-804d-2895cc071a71",
       "name": "Formula - SPLF",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        416,
-        320
+        1216,
+        448
       ]
     },
     {
       "parameters": {
         "jsCode": "const pos = parseFloat($json.positionAsOfRecordDate || 0);\nconst ratio = parseFloat($json.rightsRatio || 0);\nconst rightsEntitlement = Math.floor(pos * ratio);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash: 0.00,\n    entitlementShares: rightsEntitlement,\n    fractionalCash: 0.00,\n    newPosition: null\n  }\n};"
       },
-      "id": "cb641a5b-a730-4c5d-b572-afecfc8fa1fe",
+      "id": "83652b5c-27c6-40bb-9f2a-ecac94be1d26",
       "name": "Formula - RHTS",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        416,
-        448
+        1216,
+        576
       ]
     },
     {
       "parameters": {
         "jsCode": "const pos = parseFloat($json.positionAsOfRecordDate || 0);\n\nreturn {\n  json: {\n    ...$json,\n    entitlementCash: 0.00,\n    entitlementShares: pos,\n    fractionalCash: 0.00,\n    newPosition: null\n  }\n};"
       },
-      "id": "949554d6-a18e-4abb-be9f-a8025e87216a",
+      "id": "5b967474-0d4d-4aa4-b0b0-b2dc824fe719",
       "name": "Formula - TEND/CHOS",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        416,
-        576
+        1216,
+        704
       ]
     },
     {
       "parameters": {
         "content": "# Corporate Actions Entitlement Calculator & Deadline Tracker\n\nAutomated n8n workflow for processing mandatory and voluntary Corporate Action event notices (ISO 20022: DVCA, DVSE, SPLF, RHTS, TEND, CHOS). Calculates position entitlements, tracks election deadlines, drafts client notification emails, and records audit logs.\n\n### Setup Instructions\n1. **Webhook Security**: Set `X-Webhook-Secret` header in your request to match `$env.WEBHOOK_SECRET`.\n2. **Google Sheets**: Connect Google Sheets OAuth to read `PositionBook` and append to `AuditTrail`.\n3. **OpenAI Credentials**: Connect OpenAI credential for notification drafting.",
-        "height": 280,
-        "width": 540,
+        "height": 376,
+        "width": 684,
         "color": 6
       },
-      "id": "sticky-hero-overview",
+      "id": "d8a0f4d9-474d-4eeb-8e75-2f727ab51975",
       "name": "Sticky Note - Overview",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -800,
-        -120
+        32,
+        560
       ]
     },
     {
       "parameters": {
         "content": "### 1. Webhook Ingestion & Validation\n- Listens for incoming ISO 20022 payloads at `POST /ca-notification`.\n- Validates required parameters (`eventId`, `isin`, `eventType`, `recordDate`).\n- Checks election deadline formatting for voluntary events (`VOLU`/`CHOS`).",
-        "height": 260,
+        "height": 356,
         "width": 380,
         "color": 4
       },
-      "id": "sticky-01-ingestion",
+      "id": "5a855cdd-b168-4317-8b8e-636cdde079fe",
       "name": "Sticky Note - Ingestion & Validation",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -780,
-        180
+        16,
+        144
       ]
     },
     {
       "parameters": {
         "content": "### 2. Position Lookup & Merge\n- Queries Google Sheets `PositionBook` sheet by `isin`.\n- Combines settled position details with event data.",
-        "height": 260,
-        "width": 360,
+        "height": 372,
+        "width": 376,
         "color": 5
       },
-      "id": "sticky-02-lookup",
+      "id": "1ecef76b-bb1d-4b83-9022-1618d47e7dbb",
       "name": "Sticky Note - Position Lookup",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -380,
-        180
+        400,
+        144
       ]
     },
     {
       "parameters": {
         "content": "### 3. Event Calculation Engine\nExecutes calculation logic based on `eventType`:\n- **DVCA**: Cash Dividend = `position * grossRate` (rounded to 2 decimal places)\n- **DVSE**: Stock Dividend & Fractional Cash\n- **SPLF**: Stock Split ratio calculation\n- **RHTS**: Rights Issue entitlement\n- **TEND/CHOS**: Voluntary Tender/Choice position booking",
-        "height": 640,
+        "height": 800,
         "width": 640,
         "color": 7
       },
-      "id": "sticky-03-math-engine",
+      "id": "f873db15-7cb6-4c13-8f91-0fc77798dd45",
       "name": "Sticky Note - Calculation Engine",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        10,
-        0
+        800,
+        -48
       ]
     },
     {
       "parameters": {
         "content": "### 4. Deadline & Priority Calculation\nCalculates days remaining for voluntary elections:\n- **INFORMATIONAL**: >10 days\n- **REMINDER**: 3 to 10 days\n- **URGENT**: 1 to 3 days\n- **BREACH**: Passed deadline",
-        "height": 260,
-        "width": 240,
+        "height": 676,
         "color": 3
       },
-      "id": "sticky-04-deadline-gate",
+      "id": "d669d5d2-3c5b-4abe-94bc-d0bd12141154",
       "name": "Sticky Note - Deadline Priority",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        700,
-        180
+        1472,
+        80
       ]
     },
     {
       "parameters": {
         "content": "### 5. Client Email Drafting (OpenAI)\n- Generates notification draft for account holders.\n- Prompt template locks financial figures to ensure exact figures are preserved.",
-        "height": 380,
-        "width": 240,
+        "height": 668,
+        "width": 288,
         "color": 2
       },
-      "id": "sticky-05-llm-chain",
+      "id": "ab7c4c01-5168-4573-a551-74f13c84ce95",
       "name": "Sticky Note - Email Drafting",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        960,
-        180
+        1728,
+        80
       ]
     },
     {
       "parameters": {
         "content": "### 6. Dispatch & Audit Trail\n- **Gmail**: Sends notification email to client.\n- **Audit Log**: Appends record to `AuditTrail` sheet.",
-        "height": 260,
-        "width": 600,
-        "color": 1
+        "height": 660,
+        "width": 600
       },
-      "id": "sticky-06-dispatch-audit",
+      "id": "0ec79cda-609e-47c4-b4f7-9941359cc3fc",
       "name": "Sticky Note - Dispatch & Audit",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1220,
-        180
+        2032,
+        80
       ]
     }
   ],
@@ -729,6 +715,75 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "52983744-e816-4bea-90c4-75860ae67087",
+  "activeVersionId": null,
+  "versionCounter": 32,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "parentFolder": null,
+  "activeVersion": null,
+  "homeProject": {
+    "id": "eBJnxbkUfbVdZQd6",
+    "type": "personal",
+    "name": "Praveen Mittal <pkmittal28@gmail.com>",
+    "icon": null
+  },
+  "sharedWithProjects": [],
+  "usedCredentials": [
+    {
+      "id": "Ve9KmHYrqOrnhwfK",
+      "name": "Header Auth account",
+      "type": "httpHeaderAuth",
+      "currentUserHasAccess": true,
+      "homeProject": {
+        "id": "eBJnxbkUfbVdZQd6",
+        "type": "personal",
+        "name": "Praveen Mittal <pkmittal28@gmail.com>",
+        "icon": null
+      },
+      "sharedWithProjects": []
+    },
+    {
+      "id": "aK9K7XrUgzBQziQt",
+      "name": "n8n free OpenAI API credits",
+      "type": "openAiApi",
+      "currentUserHasAccess": true,
+      "homeProject": {
+        "id": "eBJnxbkUfbVdZQd6",
+        "type": "personal",
+        "name": "Praveen Mittal <pkmittal28@gmail.com>",
+        "icon": null
+      },
+      "sharedWithProjects": []
+    }
+  ],
+  "scopes": [
+    "execution:reveal",
+    "workflow:create",
+    "workflow:delete",
+    "workflow:disableRedaction",
+    "workflow:enableRedaction",
+    "workflow:execute",
+    "workflow:execute-chat",
+    "workflow:export",
+    "workflow:import",
+    "workflow:list",
+    "workflow:move",
+    "workflow:publish",
+    "workflow:read",
+    "workflow:share",
+    "workflow:unpublish",
+    "workflow:unshare",
+    "workflow:update"
+  ],
+  "checksum": "88385543e2b7ed6ce6ea26b249bdd1fa10d9ea2df99d78bb8864a9e594e48733"
 }
